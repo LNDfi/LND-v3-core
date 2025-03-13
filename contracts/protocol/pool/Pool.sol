@@ -45,6 +45,7 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
   IPoolAddressesProvider public immutable ADDRESSES_PROVIDER;
 
   event PointsUpdated(address user, uint256 pointsSupply, uint256 pointsBorrwo);
+  event AssetWeightUpdated(address asset, uint256 pointsSupply, uint256 pointsBorrow);
 
   /**
    * @dev Only pool configurator can call functions marked by this modifier.
@@ -135,6 +136,7 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
   ) external onlyPoolAdmin {
     assetWeightsLending[asset] = weightLending;
     assetWeightsBorrowing[asset] = weightBorrowing;
+    emit AssetWeightUpdated(asset, weightLending, weightBorrowing);
   }
 
   /**
