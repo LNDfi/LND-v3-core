@@ -38,13 +38,19 @@ import {IAaveOracle} from '../../interfaces/IAaveOracle.sol';
  *   PoolAddressesProvider
  */
 
+interface IPoints {
+  function addSupplyPoints(address user, uint256 points) external;
+  function addBorrowPoints(address user, uint256 points) external;
+}
+
 contract Pool is VersionedInitializable, PoolStorage, IPool {
   using ReserveLogic for DataTypes.ReserveData;
 
   uint256 public constant POOL_REVISION = 0x1;
   IPoolAddressesProvider public immutable ADDRESSES_PROVIDER;
+  bytes32 private constant POINTS = 'POINTS';
 
-  event PointsUpdated(address user, uint256 pointsSupply, uint256 pointsBorrwo);
+  // event PointsUpdated(address user, uint256 pointsSupply, uint256 pointsBorrwo);
   event AssetWeightUpdated(address asset, uint256 pointsSupply, uint256 pointsBorrow);
 
   /**
@@ -104,24 +110,30 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
     ADDRESSES_PROVIDER = provider;
   }
 
-  function getUserPoints(address user) external view returns (uint256, uint256) {
-    return (supplyPoints[user], borrowPoints[user]);
-  }
+  // function getUserPoints(address user) external view returns (uint256, uint256) {
+  //   return (supplyPoints[user], borrowPoints[user]);
+  // }
 
   function addSupplyPoints(address user, address asset, uint256 amount) internal {
-    IAaveOracle oracle = IAaveOracle(ADDRESSES_PROVIDER.getPriceOracle());
-    supplyPoints[user] +=
-      (assetWeightsLending[asset] * amount * oracle.getAssetPrice(asset)) /
-      (10 ** 8);
-    emit PointsUpdated(user, supplyPoints[user], borrowPoints[user]);
+    // IAaveOracle oracle = IAaveOracle(ADDRESSES_PROVIDER.getPriceOracle());
+    // supplyPoints[user] +=
+    //   (assetWeightsLending[asset] * amount * oracle.getAssetPrice(asset)) /
+    //   (10 ** 8);
+    // emit PointsUpdated(user, supplyPoints[user], borrowPoints[user]);
+    IPoints points = IPoints(ADDRESSES_PROVIDER.getAddress(POINTS));
+    uint256 supplyPoints = assetWeightsLending[asset] * amount;
+    points.addSupplyPoints(user, supplyPoints);
   }
 
   function addBorrowPoints(address user, address asset, uint256 amount) internal {
-    IAaveOracle oracle = IAaveOracle(ADDRESSES_PROVIDER.getPriceOracle());
-    borrowPoints[user] +=
-      (assetWeightsBorrowing[asset] * amount * oracle.getAssetPrice(asset)) /
-      (10 ** 8);
-    emit PointsUpdated(user, supplyPoints[user], borrowPoints[user]);
+    // IAaveOracle oracle = IAaveOracle(ADDRESSES_PROVIDER.getPriceOracle());
+    // borrowPoints[user] +=
+    //   (assetWeightsBorrowing[asset] * amount * oracle.getAssetPrice(asset)) /
+    //   (10 ** 8);
+    // emit PointsUpdated(user, supplyPoints[user], borrowPoints[user]);
+    IPoints points = IPoints(ADDRESSES_PROVIDER.getAddress(POINTS));
+    uint256 borrowPoints = assetWeightsBorrowing[asset] * amount;
+    points.addBorrowPoints(user, borrowPoints);
   }
 
   function getAssetWeights(address asset) external view returns (uint256, uint256) {
@@ -197,7 +209,7 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
         referralCode: referralCode
       })
     );
-    addSupplyPoints(msg.sender, asset, amount);
+    addSupplyPoints(tx.origin, asset, amount);
   }
 
   /// @inheritdoc IPool
@@ -231,7 +243,7 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
         referralCode: referralCode
       })
     );
-    addSupplyPoints(msg.sender, asset, amount);
+    addSupplyPoints(tx.origin, asset, amount);
   }
 
   /// @inheritdoc IPool
@@ -285,7 +297,7 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
         priceOracleSentinel: ADDRESSES_PROVIDER.getPriceOracleSentinel()
       })
     );
-    addBorrowPoints(msg.sender, asset, amount);
+    addBorrowPoints(tx.origin, asset, amount);
   }
 
   /// @inheritdoc IPool
@@ -776,5 +788,6 @@ contract Pool is VersionedInitializable, PoolStorage, IPool {
         referralCode: referralCode
       })
     );
+    addSupplyPoints(tx.origin, asset, amount);
   }
 }
